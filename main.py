@@ -58,7 +58,7 @@ class ExampleApp(QtWidgets.QMainWindow, RTG.Ui_MainWindow):
         self.t180.setValidator(QtGui.QDoubleValidator())
         self.t240.setValidator(QtGui.QDoubleValidator())
         self.gfr.setValidator(QtGui.QDoubleValidator())
-        self.ucg.setValidator(QtGui.QDoubleValidator())
+        self.uge.setValidator(QtGui.QDoubleValidator())
         # 绑定事件
         self.plotPushButton.clicked.connect(self.on_button_plot)
         self.fitPushButton.clicked.connect(self.on_button_fit)
@@ -69,7 +69,7 @@ class ExampleApp(QtWidgets.QMainWindow, RTG.Ui_MainWindow):
         self.gridlayout = QGridLayout(self.groupBox)  # 继承容器groupBox
         self.gridlayout.addWidget(self.F, 0, 1)
         # 拟合函数
-        self.fit_func = 0
+        self.fit_func = []
 
     def getBG(self):
         return [
@@ -84,12 +84,14 @@ class ExampleApp(QtWidgets.QMainWindow, RTG.Ui_MainWindow):
         ]
 
     def on_button_plot(self, evt):
-        self.fit_func = 0
+        self.fit_func = []
         self.F.axes.clear()
         self.F.axes.set_ylim(140, 250)
         self.F.axes.set_xlim(-20, 260)
         x = [-15, 0, 30, 60, 90, 120, 180, 240]
         y = self.getBG()
+        for i in range(len(x) - 1):
+            self.fit_func.append(poly1d(polyfit(x[i:i + 2], y[i:i + 2], 1)))
         self.F.axes.plot(x, y, 'ks-')
         self.gridlayout.addWidget(self.F, 0, 1)
         self.F.draw()
@@ -100,54 +102,56 @@ class ExampleApp(QtWidgets.QMainWindow, RTG.Ui_MainWindow):
         self.F.axes.set_ylim(140, 250)
         x = [-15, 0, 30, 60, 90, 120, 180, 240]
         y = self.getBG()
-        self.fit_func = poly1d(polyfit(x, y, int(self.fitLevel.text())))
-        self.F.axes.plot(x, y, 'ks-')
-        cx = range(-15, 240)
-        self.F.axes.plot(cx, self.fit_func(cx))
-        self.gridlayout.addWidget(self.F, 0, 1)
-        self.F.draw()
 
     def getIntegrateVal(self, rtg):
         gfr = float(self.gfr.text())
+        x = [-15, 0, 30, 60, 90, 120, 180, 240]
+        tmp = 0.0
         sx = symbols('x')
-        if type(self.fit_func) == int:
-            x = [-15, 0, 30, 60, 90, 120, 180, 240]
-            y = self.getBG()
-            tmp = 0
-            for i in range(0, 7):
-                tmp += (y[i] + y[i + 1] - 2 * rtg) * (x[i + 1] - x[i]) / 2
-            return tmp
-        else:
-            func = self.fit_func(sx) - rtg
-            return gfr * integrate(func, (sx, -15, 240))
+        for i in range(len(x) - 1):
+            up_side = self.fit_func[i](x[i]) - rtg  # 上底
+            down_side = self.fit_func[i](x[i + 1]) - rtg  # 下底
+            high = x[i + 1] - x[i]
+            if (up_side * down_side) > 0:
+                if up_side > 0:
+                    tmp += ((up_side + down_side) * high / 2)
+            else:
+                result = solve(self.fit_func[i](sx) - rtg, sx)[0]
+                if up_side > 0:
+                    high = result - x[i]
+                    tmp += ((up_side + 0) * high / 2)
+                else:
+                    high = x[i + 1] - result
+                    tmp += ((0 + down_side) * high / 2)
+        return tmp * gfr
 
     def integrate(self, evt):
         if not is_number(self.gfr.text()):
             self.RTG_label.setText("GRF 不是合法的值")
             return
-        if not is_number(self.ucg.text()):
-            self.RTG_label.setText("UCG 不是合法的值")
+        if not is_number(self.uge.text()):
+            self.RTG_label.setText("UGE 不是合法的值")
             return
-        ucg = float(self.ucg.text())
+        uge = float(self.uge.text())
         maxRTG, minRTG = max(self.getBG()), 0
         rtg, tmp = 0, 0
         print("BG info : ", str(self.getBG()))
         print("GFR : ", float(self.gfr.text()))
-        print("UCG : ", ucg)
+        print("UGE : ", uge)
         print("迭代计算开始：")
 
         for i in range(0, 50):
             rtg = (maxRTG + minRTG) / 2
             tmp = self.getIntegrateVal(rtg)
-            print("第%d次迭代结果：rtg=" % (i + 1) + "%.3f 误差=" % rtg + "%.5f" % (tmp - ucg))
-            if abs(tmp - ucg) < 0.0001:
-                self.RTG_label.setText("TRG = " + '%.3f' % rtg + "(mg/dl)" + "\n误差为 %.5f" % (tmp - ucg))
+            print("第{}次迭代结果：rtg={} fake_uge={} 误差={}".format(i + 1, rtg, tmp, tmp - uge))
+            if abs(tmp - uge) < 0.0001:
+                self.RTG_label.setText("RTG = " + '%.3f' % rtg + "(mg/dl)" + "\n误差为 %.5f" % (tmp - uge))
                 return
-            if tmp > ucg:
+            if tmp > uge:
                 minRTG = rtg
             else:
                 maxRTG = rtg
-        self.RTG_label.setText("计算未达到精度要求\n结果为：%.3f " % rtg + "误差大小为 %.5f" % (tmp - ucg))
+        self.RTG_label.setText("计算未达到精度要求\n结果为：%.3f " % rtg + "误差大小为 %.5f" % (tmp - uge))
 
 
 def main():

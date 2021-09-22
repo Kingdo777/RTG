@@ -300,7 +300,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="ucg">
+        <widget class="QLineEdit" name="uge">
          <property name="minimumSize">
           <size>
            <width>0</width>
