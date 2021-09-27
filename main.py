@@ -109,7 +109,7 @@ class ExampleApp(QtWidgets.QMainWindow, RTG.Ui_MainWindow):
             if is_number(t_label[i]) and \
                     is_number(bg_label[i]) and \
                     24 * 60 >= int(t_label[i]) >= -24 * 60 and \
-                    0 <= float(bg_label[i]) <= 1000.0:
+                    0 < float(bg_label[i]) <= 1000.0:
                 data.append((int(t_label[i]), float(bg_label[i])))
         data.sort(key=lambda x: x[0])
         print(t_label)
@@ -122,13 +122,15 @@ class ExampleApp(QtWidgets.QMainWindow, RTG.Ui_MainWindow):
     def plot(self):
         self.fit_func = []
         self.F.axes.clear()
-        self.F.axes.set_ylim(min(self.bg)-10, max(self.bg)+10)
-        self.F.axes.set_xlim(min(self.t)-5, max(self.t)+5)
+        self.F.axes.set_ylim(min(self.bg) - 10, max(self.bg) + 10)
+        self.F.axes.set_xlim(min(self.t) - 5, max(self.t) + 5)
         x = self.t
         y = self.bg
         for i in range(len(x) - 1):
             self.fit_func.append(poly1d(polyfit(x[i:i + 2], y[i:i + 2], 1)))
         self.F.axes.plot(x, y, 'ks-')
+        for a, b in zip(x, y):
+            self.F.axes.text(a, b, a, ha='center', va='bottom', fontsize=10)
         self.gridlayout.addWidget(self.F, 0, 1)
         self.F.draw()
 
@@ -164,7 +166,7 @@ class ExampleApp(QtWidgets.QMainWindow, RTG.Ui_MainWindow):
         self.RTG_label.setText("我被清空了呢")
 
     def getIntegrateVal(self, rtg):
-        gfr = float(self.gfr.text())
+        gfr = float(self.gfr.text()) / 100
         x = self.t
         tmp = 0.0
         sx = symbols('x')
@@ -197,7 +199,7 @@ class ExampleApp(QtWidgets.QMainWindow, RTG.Ui_MainWindow):
             self.RTG_label.setText("数据太少")
             return
         self.plot()
-        uge = float(self.uge.text())
+        uge = float(self.uge.text()) * 1000
         maxRTG, minRTG = max(self.bg), 0
         rtg, tmp = 0, 0
         print("BG info : ", str(self.bg))
