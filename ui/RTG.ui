@@ -69,7 +69,7 @@
         </font>
        </property>
        <property name="text">
-        <string>    t：</string>
+        <string> t：</string>
        </property>
       </widget>
      </item>
@@ -188,7 +188,7 @@
         </font>
        </property>
        <property name="text">
-        <string>min    </string>
+        <string>min  </string>
        </property>
        <property name="alignment">
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -555,7 +555,7 @@
      <x>0</x>
      <y>0</y>
      <width>850</width>
-     <height>22</height>
+     <height>23</height>
     </rect>
    </property>
   </widget>
